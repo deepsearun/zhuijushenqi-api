@@ -21,7 +21,7 @@ class SecurityCheck
     {
         // 时间戳超时效验
         $timestamp = input('timestamp', 0, 'intval');
-        if (intval((getMillisecond() - $timestamp)) > $this->timeout) {
+        if ((getMillisecond() - $timestamp) > $this->timeout) {
             ApiException('Invalid request', 998);
         }
         // 请求签名效验

@@ -20,5 +20,13 @@ Route::group('api/:version', function () {
     // 获取资讯轮播图
     Route::get('art/slider',':version.ArtController/slider');
     // 热门电影
-    Route::get('vod/hot',':version.VodController/getHotMovie');
+    Route::get('vod/hot/movie',':version.VodController/getHotMovie');
+    // 热门电视剧
+    Route::get('vod/hot/tv',':version.VodController/getHotTv');
+    // 热门综艺
+    Route::get('vod/hot/variety',':version.VodController/getHotVariety');
+    // 热门动漫
+    Route::get('vod/hot/comic',':version.VodController/getHotComic');
+    // 热门影视列表
+    Route::get('vod/hot/index',':version.VodController/getHotList');
 });

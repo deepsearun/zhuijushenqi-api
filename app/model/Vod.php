@@ -113,7 +113,7 @@ class Vod extends Base
     {
         $data = $this->listField()->whereDay('vod_time')
             ->page($this->page, $this->pageSize)
-            ->order('vod_time desc')->select();
+            ->order('vod_time,vod_hits_week desc')->select();
         $total = $this->whereDay('vod_time')->count();
         return $this->showResArr($data, $total);
     }
@@ -124,10 +124,65 @@ class Vod extends Base
      */
     public function getHotMovie(): array
     {
-        $map = ['type_id' => 1];
+        $map[] = ['type_id|type_id_1', '=', 1];
+        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_hits_day desc')->select();
+            ->order('vod_time,vod_hits desc')->select();
         $total = $this->where($map)->count();
+        return $this->showResArr($data, $total);
+    }
+
+    /**
+     * 获取热门电视剧
+     * @return array
+     */
+    public function getHotTv(): array
+    {
+        $map[] = ['type_id|type_id_1', '=', 2];
+        $map[] = ['vod_year', '=', date('Y') - 1];
+        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+            ->order('vod_time,vod_hits desc')->select();
+        $total = $this->where($map)->count();
+        return $this->showResArr($data, $total);
+    }
+
+    /**
+     * 获取热门综艺
+     * @return array
+     */
+    public function getHotVariety(): array
+    {
+        $map[] = ['type_id|type_id_1', '=', 3];
+        $map[] = ['vod_year', '=', date('Y')];
+        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+            ->order('vod_time,vod_hits desc')->select();
+        $total = $this->where($map)->count();
+        return $this->showResArr($data, $total);
+    }
+
+    /**
+     * 获取热门动漫
+     * @return array
+     */
+    public function getHotComic(): array
+    {
+        $map[] = ['type_id|type_id_1', '=', 4];
+        $map[] = ['vod_year', '>=', date('Y')];
+        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+            ->order('vod_time,vod_hits desc')->select();
+        $total = $this->where($map)->count();
+        return $this->showResArr($data, $total);
+    }
+
+    /**
+     * 获取热门影视列表
+     * @return array
+     */
+    public function getHotList(): array
+    {
+        $data = $this->listField()->page($this->page, $this->pageSize)
+            ->order('vod_hits,vod_year desc')->select();
+        $total = $this->count();
         return $this->showResArr($data, $total);
     }
 }
