@@ -206,7 +206,7 @@ class Vod extends Base
         $data = $this->parsePlayData($data);
         // 统计影片热度
         $this->countHits('vod', $vod_id);
-        return $this->showResArr($data);
+        return $data;
     }
 
     /**
