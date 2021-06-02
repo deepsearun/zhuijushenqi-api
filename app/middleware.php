@@ -8,7 +8,5 @@ return [
     // Session初始化
     // \think\middleware\SessionInit::class
     // 全局跨域支持
-    \app\middleware\CrossDomain::class,
-    // 全局接口安全检查
-    \app\middleware\SecurityCheck::class
+    \app\middleware\CrossDomain::class
 ];

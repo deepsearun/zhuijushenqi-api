@@ -60,3 +60,50 @@ function getMillisecond(): float
     list($s1, $s2) = explode(' ', microtime());
     return (float)sprintf('%.0f', (floatval($s1) + floatval($s2)) * 1000);
 }
+
+if (!function_exists('redis')) {
+    /**
+     * 获取redis操作句柄
+     * @return object|null
+     */
+    function redis()
+    {
+        return \think\facade\Cache::store('redis')->handler();
+    }
+}
+
+/**
+ * 多维数组通过键 进行数组排序
+ * @param array $array 排序的数组
+ * @param $key mixed 用来排序的键名
+ * @param string $type 排序类型 大小写不敏感 desc or asc
+ * @return array
+ */
+function multiArraySort(array $array, $key, string $type = 'asc'): array
+{
+    // 判断排序类型
+    $sortType = strtolower($type) == 'asc' ? SORT_ASC : SORT_DESC;
+
+    foreach ($array as $row_array) {
+        if (!is_array($row_array)) return [];
+
+        $key_array[] = $row_array[$key];
+    }
+
+    if (!array_multisort($key_array, $sortType, $array)) return [];
+
+    return $array;
+}
+
+/**
+ * 解析字符串为数组
+ * @param string $rule
+ * @param string $str
+ * @return array
+ */
+function explodeByRule(string $rule, string $str): array
+{
+    if (empty($str)) return [];
+    return explode($rule, $str);
+}
+

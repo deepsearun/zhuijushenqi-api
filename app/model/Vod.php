@@ -3,6 +3,9 @@
 
 namespace app\model;
 
+use app\common\lib\HttpCurl;
+use think\facade\Cache;
+
 /**
  * Class Vod
  * @author deepsea <top@52e.cc>
@@ -139,7 +142,7 @@ class Vod extends Base
     public function getHotTv(): array
     {
         $map[] = ['type_id|type_id_1', '=', 2];
-        $map[] = ['vod_year', '=', date('Y') - 1];
+        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
             ->order('vod_time,vod_hits desc')->select();
         $total = $this->where($map)->count();
@@ -167,7 +170,7 @@ class Vod extends Base
     public function getHotComic(): array
     {
         $map[] = ['type_id|type_id_1', '=', 4];
-        $map[] = ['vod_year', '>=', date('Y')];
+        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
             ->order('vod_time,vod_hits desc')->select();
         $total = $this->where($map)->count();
@@ -183,6 +186,97 @@ class Vod extends Base
         $data = $this->listField()->page($this->page, $this->pageSize)
             ->order('vod_hits,vod_year desc')->select();
         $total = $this->count();
+        return $this->showResArr($data, $total);
+    }
+
+    /**
+     * 获取影片详情
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     */
+    public function detail(): array
+    {
+        $vod_id = input('vod_id');
+        $data = $this->with(['parentType' => function ($query) {
+            $query->field('type_id,type_name');
+        }, 'type' => function ($query) {
+            $query->field('type_id,type_name');
+        }])->find($vod_id)->toArray();
+        $data = $this->parsePlayData($data);
+        // 统计影片热度
+        $this->countHits('vod', $vod_id);
+        return $this->showResArr($data);
+    }
+
+    /**
+     * 创建搜索词记录 如果已存在 查询次数 +1
+     * @param $keyword
+     * @return bool
+     */
+    public function saveSearchWord($keyword): bool
+    {
+        if (empty($keyword)) return false;
+        $key = 'keywordSearch_' . md5($keyword);
+        $lock = cache($key . '_lock');
+        if ($lock) return false;
+        $redis = redis();
+        $redis->sAdd('search_set', $key);
+        $isSearch = $redis->hKeys($key);
+        if (!$isSearch) {
+            $redis->hMset($key, [
+                'word' => $keyword,
+                'num' => 1,
+                'time' => time()
+            ]);
+        } else {
+            $redis->hIncrBy($key, 'num', 1);
+        }
+        cache($key . '_lock', 1, 5);
+        return true;
+    }
+
+    /**
+     * 获取热搜关键词
+     * @return array
+     */
+    public function getHotSearchWords(): array
+    {
+        $arrays = [];
+        $redis = redis();
+        $searchArr = $redis->sMembers('search_set');
+        if (empty($searchArr)) return $arrays;
+        foreach ($searchArr as $key) {
+            $arrays[] = [
+                'num' => $redis->hGet($key, 'num'),
+                'keyword' => $redis->hGet($key, 'word'),
+                'time' => $redis->hGet($key, 'time')
+            ];
+        }
+        $arrays = multiArraySort($arrays, 'num', 'desc');
+        $arrays = array_slice($arrays, 0, 15);
+        return $this->showResArr($arrays);
+    }
+
+    /**
+     * 搜索
+     * @return array
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function search(): array
+    {
+        $keyword = urldecode(input('keyword'));
+        $this->saveSearchWord($keyword);
+        $total = $this->where('vod_name|vod_actor|vod_director', 'like', '%' . $keyword . '%')
+            ->count();
+        $data = $this->listField()->with(['parentType' => function ($query) {
+            $query->field('type_id,type_name');
+        }])->where('vod_name|vod_actor|vod_director', 'like', '%' . $keyword . '%')
+            ->page($this->page, $this->pageSize)
+            ->order('vod_hits desc')
+            ->select();
         return $this->showResArr($data, $total);
     }
 }
