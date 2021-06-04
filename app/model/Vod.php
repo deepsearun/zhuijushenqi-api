@@ -67,6 +67,17 @@ class Vod extends Base
     }
 
     /**
+     * 获取器 图片别名 image
+     * @param $value
+     * @param $data
+     * @return string
+     */
+    public function getImageAttr($value, $data): string
+    {
+        return $this->checkJoinPicUrl($value);
+    }
+
+    /**
      * 列表通用 限制返回的字段
      * @return object
      */
@@ -99,7 +110,7 @@ class Vod extends Base
      */
     public function getSlider(): array
     {
-        $data = $this->field('vod_id,vod_name as title,vod_pic_slide as image')
+        $data = $this->field('vod_id,vod_blurb as title,vod_pic_slide as image')
             ->where('vod_level', 9)
             ->select();
         return $this->showResArr($data);
@@ -116,7 +127,7 @@ class Vod extends Base
     {
         $data = $this->listField()->whereDay('vod_time')
             ->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_hits_week desc')->select();
+            ->order('vod_time,vod_year desc')->select();
         $total = $this->whereDay('vod_time')->count();
         return $this->showResArr($data, $total);
     }
@@ -144,7 +155,7 @@ class Vod extends Base
         $map[] = ['type_id|type_id_1', '=', 2];
         $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_hits desc')->select();
+            ->order('vod_time desc')->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
     }
