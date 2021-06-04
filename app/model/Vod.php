@@ -260,13 +260,26 @@ class Vod extends Base
         foreach ($searchArr as $key) {
             $arrays[] = [
                 'num' => $redis->hGet($key, 'num'),
-                'keyword' => $redis->hGet($key, 'word'),
+                'keyword' => $this->contentRep($redis->hGet($key, 'word')),
                 'time' => $redis->hGet($key, 'time')
             ];
         }
         $arrays = multiArraySort($arrays, 'num', 'desc');
         $arrays = array_slice($arrays, 0, 15);
         return $this->showResArr($arrays);
+    }
+
+    /**
+     * 敏感内容替换
+     * @param $value
+     * @return array|string|string[]
+     */
+    public function contentRep($value)
+    {
+        $str = htmlspecialchars($value);
+        $words = file_get_contents(root_path() . 'public/static/words.txt');
+        $comment_key = preg_split('/[\r\n]+/', trim($words, "\r\n"));
+        return str_replace($comment_key, '***', $str);
     }
 
     /**
