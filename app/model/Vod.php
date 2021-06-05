@@ -3,9 +3,6 @@
 
 namespace app\model;
 
-use app\common\lib\HttpCurl;
-use think\facade\Cache;
-
 /**
  * Class Vod
  * @author deepsea <top@52e.cc>
@@ -16,6 +13,8 @@ class Vod extends Base
     protected $pk = 'vod_id';
 
     protected $globalScope = ['status'];
+
+    protected $hotDesc = 'vod_time desc,vod_hits desc';
 
     /**
      * 定义全局的查询范围
@@ -112,6 +111,7 @@ class Vod extends Base
     {
         $data = $this->field('vod_id,vod_blurb as title,vod_pic_slide as image')
             ->where('vod_level', 9)
+            ->order('vod_time desc')
             ->select();
         return $this->showResArr($data);
     }
@@ -127,7 +127,7 @@ class Vod extends Base
     {
         $data = $this->listField()->whereDay('vod_time')
             ->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_year desc')->select();
+            ->order('vod_year desc')->select();
         $total = $this->whereDay('vod_time')->count();
         return $this->showResArr($data, $total);
     }
@@ -139,9 +139,8 @@ class Vod extends Base
     public function getHotMovie(): array
     {
         $map[] = ['type_id|type_id_1', '=', 1];
-        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_hits desc')->select();
+            ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
     }
@@ -153,9 +152,8 @@ class Vod extends Base
     public function getHotTv(): array
     {
         $map[] = ['type_id|type_id_1', '=', 2];
-        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_time desc')->select();
+            ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
     }
@@ -167,9 +165,8 @@ class Vod extends Base
     public function getHotVariety(): array
     {
         $map[] = ['type_id|type_id_1', '=', 3];
-        $map[] = ['vod_year', '=', date('Y')];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_hits desc')->select();
+            ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
     }
@@ -181,9 +178,8 @@ class Vod extends Base
     public function getHotComic(): array
     {
         $map[] = ['type_id|type_id_1', '=', 4];
-        $map[] = ['vod_year', '>=', date('Y') - 1];
         $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
-            ->order('vod_time,vod_hits desc')->select();
+            ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
     }
@@ -195,7 +191,7 @@ class Vod extends Base
     public function getHotList(): array
     {
         $data = $this->listField()->page($this->page, $this->pageSize)
-            ->order('vod_hits,vod_year desc')->select();
+            ->order($this->hotDesc)->select();
         $total = $this->count();
         return $this->showResArr($data, $total);
     }
@@ -265,7 +261,7 @@ class Vod extends Base
             ];
         }
         $arrays = multiArraySort($arrays, 'num', 'desc');
-        $arrays = array_slice($arrays, 0, 15);
+        $arrays = array_slice($arrays, 0, 20);
         return $this->showResArr($arrays);
     }
 
@@ -293,13 +289,13 @@ class Vod extends Base
     {
         $keyword = urldecode(input('keyword'));
         $this->saveSearchWord($keyword);
-        $total = $this->where('vod_name|vod_actor|vod_director', 'like', '%' . $keyword . '%')
+        $total = $this->where('vod_name|vod_actor|vod_director', 'like', $keyword . '%')
             ->count();
         $data = $this->listField()->with(['parentType' => function ($query) {
             $query->field('type_id,type_name');
-        }])->where('vod_name|vod_actor|vod_director', 'like', '%' . $keyword . '%')
+        }])->where('vod_name|vod_actor|vod_director', 'like', $keyword . '%')
             ->page($this->page, $this->pageSize)
-            ->order('vod_hits desc')
+            ->order($this->hotDesc)
             ->select();
         return $this->showResArr($data, $total);
     }

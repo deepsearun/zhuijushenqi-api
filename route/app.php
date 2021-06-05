@@ -17,15 +17,18 @@ Route::any('api/:version/config', function () {
         // 首页标题显示
         'index_name' => '热门影视分享',
         // 滚动公告内容
-        'notices' => [
-            '免责声明：小程序内容来源于网络，服务器未存储任何视频，如有侵犯您的权益请告知我们尽快处理'
-        ],
+        'notices' => false, //[ '免责声明：小程序内容来源于网络，服务器未存储任何视频，如有侵犯您的权益请告知我们尽快处理']
         // 轮播图 3D效果
         'effect3d' => false,
         // 搜索框内容
         'searchInput' => '输入影片名 演员或导演搜索'
     ]);
 });
+
+Route::any('api/:version/newconfig', function () {
+    return json(config('api.viewsConfig'));
+});
+
 
 Route::group('api/:version', function () {
     // 获取影片轮播图

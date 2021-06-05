@@ -37,22 +37,18 @@ class Base extends Model
     public function parsePlayData(array $data): array
     {
         $playFrom = explodeByRule('$$$', trim($data['vod_play_from'], '$$$'));
-        $downFrom = explodeByRule('$$$', trim($data['vod_down_from'], '$$$'));
         $playList = $this->parsePlayAndDownloadUrl(trim($data['vod_play_url'], '$$$'));
-        $downList = $this->parsePlayAndDownloadUrl(trim($data['vod_down_url'], '$$$'));
         if (count($playFrom) > count($playList)) {
             $playFrom = array_splice($playFrom, 1);
         }
-        if (empty($downFrom) || empty($downList)) {
-            $data['vod_play_from'] = $playFrom;
-            $data['vod_play_url'] = $playList;
-            unset($playList, $playList);
-            return $data;
+        foreach ($playFrom as $k => $v) {
+            $arr = config('api.player_name');
+            if (isset($arr[$v])) {
+                $playFrom[$k] = $arr[$v];
+            }
         }
-        $data['vod_down_from'] = $downFrom;
-        $data['vod_down_url'] = $downList;
-        $data['vod_play_from'] = array_merge($playFrom, $downFrom);
-        $data['vod_play_url'] = array_merge($playList, $downList);
+        $data['vod_play_from'] = array_merge($playFrom);
+        $data['vod_play_url'] = $playList;
         unset($downList, $downFrom, $playList, $playList);
         return $data;
     }
