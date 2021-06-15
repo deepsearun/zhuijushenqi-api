@@ -98,6 +98,19 @@ class VodController extends CommonController
     }
 
     /**
+     * 搜索关键词提示
+     * @return \think\response\Json
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function searchComplete(): \think\response\Json
+    {
+        $data = (new Vod())->searchComplete();
+        return self::showResCode('获取成功', $data);
+    }
+
+    /**
      * 获取热门搜索
      * @return \think\response\Json
      */

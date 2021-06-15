@@ -33,6 +33,7 @@ class Sign
      * 除去数组中的空值和签名参数
      * @param $para
      * return 去掉空值与签名参数后的新签名参数组
+     * @return array
      */
     private function paraFilter($para): array
     {

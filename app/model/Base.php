@@ -2,6 +2,7 @@
 
 namespace app\model;
 
+use app\common\lib\HttpCurl;
 use think\facade\Cache;
 use think\facade\Db;
 use think\Model;
@@ -19,12 +20,25 @@ class Base extends Model
     }
 
     /**
+     * 获取缓存名称
+     * @param $key
+     * @return string
+     */
+    protected function getCacheName($key): string
+    {
+        $data = input();
+        unset($data['timestamp'], $data['sign']);
+        return md5(http_build_query($data) . $key . 'v140');
+    }
+
+    /**
      * 验证是否需要拼接图片URL
      * @param $url
      * @return string
      */
     protected function checkJoinPicUrl($url): string
     {
+        $url = replaceRemoteUrl($url); // up666
         if (checkProtocol($url)) return $url;
         return config('api.image_url') . trim($url, '/');
     }
@@ -38,18 +52,30 @@ class Base extends Model
     {
         $playFrom = explodeByRule('$$$', trim($data['vod_play_from'], '$$$'));
         $playList = $this->parsePlayAndDownloadUrl(trim($data['vod_play_url'], '$$$'));
-        if (count($playFrom) > count($playList)) {
-            $playFrom = array_splice($playFrom, 1);
-        }
         foreach ($playFrom as $k => $v) {
             $arr = config('api.player_name');
             if (isset($arr[$v])) {
                 $playFrom[$k] = $arr[$v];
             }
         }
-        $data['vod_play_from'] = array_merge($playFrom);
-        $data['vod_play_url'] = $playList;
-        unset($downList, $downFrom, $playList, $playList);
+        foreach ($playFrom as $k => $item) {
+            $playFrom[$k]['playList'] = $playList[$k];
+        }
+
+        unset($playList);
+
+        array_multisort(array_column($playFrom, 'sort'), SORT_ASC, $playFrom);
+
+        $newPlayList = [];
+
+        foreach ($playFrom as $k => $item) {
+            $newPlayList[] = $item['playList'];
+            unset($playFrom[$k]['playList']);
+        }
+
+        $data['vod_play_from'] = $playFrom;
+        $data['vod_play_url'] = $newPlayList;
+
         return $data;
     }
 

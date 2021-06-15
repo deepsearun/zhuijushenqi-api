@@ -10,25 +10,98 @@
 // +----------------------------------------------------------------------
 use think\facade\Route;
 
+/**
+ * 蓝光资源站
+ */
+Route::get('api/:version/lg', function () {
+    $url = input('url');
+    $arr = file_get_contents('https://j.languang.wfss100.com/json/json.php?url=' . $url);
+    $arr = json_decode($arr, true);
+    if (!empty($arr['url'])) {
+        return redirect($arr['url']);
+    }
+    return json(['msg' => '解析错误'], 404);
+});
+
+/**
+ * 线上小程序配置
+ */
 Route::any('api/:version/config', function () {
     return json([
         // 防封模式 开启后关闭视频播放功能 点击影视将直接分享。
         'check' => true,
-        // 首页标题显示
-        'index_name' => '热门影视分享',
-        // 滚动公告内容
-        'notices' => false, //[ '免责声明：小程序内容来源于网络，服务器未存储任何视频，如有侵犯您的权益请告知我们尽快处理']
-        // 轮播图 3D效果
-        'effect3d' => false,
-        // 搜索框内容
-        'searchInput' => '输入影片名 演员或导演搜索'
+        // 首页tabs
+        'tabs' => [
+            ['id' => 0, 'name' => '推荐'],
+            ['id' => 1, 'name' => '电影'],
+            ['id' => 2, 'name' => '电视剧'],
+            ['id' => 3, 'name' => '综艺'],
+            ['id' => 4, 'name' => '动漫'],
+        ],
+        // 蓝光解析
+        'renrenmi' => 'https://ku.renrenmi.cc/api/?type=app&key=ZuQJy69yvWthoB15rq&url=',
+        // 蓝光解析2
+        'lg' => 'https://sp.2oc.cc/api/v1/lg?url=',
+        // 官方直链解析
+        'renrenmi2' => 'https://vip.renrenmi.cc/api/?type=app&key=hivHDOefp7HaUibqfQ&url=',
+        // 首页banner广告
+        'index_banner' => 'adunit-41c31fffb1378f4c',
+        // 首页banner广告2
+        'index_banner2' => 'adunit-02537f9dc9a36baa',
+        // 首页banner广告3
+        'index_banner3' => 'adunit-1300892bea148fef',
+        // 搜索页面banner广告
+        'search_banner' => 'adunit-357587f6b97ad288',
+        // 视频前贴广告
+        'play_start_ad' => 'adunit-8a7a6f4e595d1fea', //adunit-8a7a6f4e595d1fea
+        // 视频广告
+        'video_ad' => 'adunit-b597668eb3fbed1a',
+        // 激励广告
+        'rewarded_ad' => 'adunit-c8a413b638657b5e', // adunit-c8a413b638657b5e
+        // 插屏广告
+        'interAd' => 'adunit-63915039ea3bd3ab'
     ]);
 });
 
-Route::any('api/:version/newconfig', function () {
-    return json(config('api.viewsConfig'));
+/**
+ * 线上小程序配置
+ */
+Route::any('api/:version/config2', function () {
+    return json([
+        // 防封模式 开启后关闭视频播放功能 点击影视将直接分享。
+        'check' => false,
+        // 首页tabs
+        'tabs' => [
+            ['id' => 0, 'name' => '推荐'],
+            ['id' => 1, 'name' => '电影'],
+            ['id' => 2, 'name' => '电视剧'],
+            ['id' => 3, 'name' => '综艺'],
+            ['id' => 4, 'name' => '动漫'],
+        ],
+        // 蓝光解析
+        'renrenmi' => 'https://ku.renrenmi.cc/api/?type=app&key=ZuQJy69yvWthoB15rq&url=',
+        // 蓝光解析2
+        'lg' => 'https://sp.2oc.cc/api/v1/lg?url=',
+        // 官方直链解析
+        'renrenmi2' => 'https://vip.renrenmi.cc/api/?type=app&key=hivHDOefp7HaUibqfQ&url=',
+        // 首页banner广告
+        'index_banner' => 'adunit-41c31fffb1378f4c',
+        // 首页banner广告2
+        'index_banner2' => 'adunit-02537f9dc9a36baa',
+        // 首页banner广告3
+        'index_banner3' => 'adunit-1300892bea148fef',
+        // 搜索页面banner广告
+        'search_banner' => 'adunit-357587f6b97ad288',
+        // 视频前贴广告
+        'play_start_ad' => 'adunit-8a7a6f4e595d1fea', //adunit-8a7a6f4e595d1fea
+        // 视频广告
+        'video_ad' => 'adunit-b597668eb3fbed1a',
+        // 激励广告
+        'rewarded_ad' => 'adunit-c8a413b638657b5e', // adunit-c8a413b638657b5e
+        // 插屏广告
+        'interAd' => 'adunit-63915039ea3bd3ab'
+    ]);
 });
-
 
 Route::group('api/:version', function () {
     // 获取影片轮播图
@@ -51,8 +124,52 @@ Route::group('api/:version', function () {
     Route::get('vod/hot/index', ':version.VodController/getHotList');
     // 搜索影片
     Route::get('vod/search/index', ':version.VodController/search');
+    // 搜索关键词提示
+    Route::get('vod/search/complete', ':version.VodController/searchComplete');
     // 搜索热词
     Route::get('vod/search/hotwords', ':version.VodController/searchHotWords');
     // 影片详情
     Route::get('vod/detail/:vod_id', ':version.VodController/detail');
-})->middleware(\app\middleware\SecurityCheck::class);
+});
+
+/**
+ * 加入房间
+ */
+Route::post('api/:version/room/add', ':version.ChatServer/bind');
+
+/**
+ * 发送消息
+ */
+Route::post('api/:version/room/send', ':version.ChatServer/send');
+
+
+/**
+ * 获取消息记录
+ */
+Route::get('api/:version/room/index', ':version.ChatServer/index');
+
+/**
+ * 获取弹幕
+ */
+Route::get('api/:version/room/dm', ':version.ChatServer/dm');
+
+/**
+ * 获取在线人数
+ */
+Route::get('api/:version/room/online', ':version.ChatServer/online');
+
+
+/**
+ * 退出房间
+ */
+Route::post('api/:version/room/exit', ':version.ChatServer/exit');
+
+/**
+ * 短链接生成
+ */
+Route::get('api/:version/suo', function () {
+    $url = input('url', '');
+    $api = 'https://api.btstu.cn/mrw/api.php?url=' . $url;
+    $res = \app\common\lib\HttpCurl::url($api)->get()->jsonToArray();
+    return json(['url' => $res['shorturl'] ?? '获取下载链接失败']);
+});

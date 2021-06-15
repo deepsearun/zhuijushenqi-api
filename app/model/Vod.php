@@ -14,7 +14,7 @@ class Vod extends Base
 
     protected $globalScope = ['status'];
 
-    protected $hotDesc = 'vod_time desc,vod_hits desc';
+    protected $hotDesc = 'vod_hits desc,vod_hits_day desc,vod_hits_week desc,vod_hits_month desc,vod_time desc';
 
     /**
      * 定义全局的查询范围
@@ -80,13 +80,14 @@ class Vod extends Base
      * 列表通用 限制返回的字段
      * @return object
      */
-    public function listField()
+    public function listField($cache = false)
     {
         $field = 'vod_id,type_id,type_id_1,vod_name,vod_class,';
         $field .= 'vod_letter,vod_pic,vod_pic_slide,vod_actor,vod_director,vod_blurb,vod_remarks,';
         $field .= 'vod_hits,vod_hits_day,vod_hits_week,vod_hits_month,';
         $field .= 'vod_area,vod_lang,vod_year,vod_level,vod_score,vod_time,vod_content';
-        return $this->field($field)->with('type');
+        if ($cache === false) return $this->field($field)->with('type');
+        return $this->field($field)->with('type')->cache($this->getCacheName($cache), 1800);
     }
 
     /**
@@ -109,9 +110,19 @@ class Vod extends Base
      */
     public function getSlider(): array
     {
+        $type = input('type');
+        $map[] = [
+            'vod_level', '=', 9
+        ];
+        if (!empty($type)) {
+            $map[] = [
+                'type_id|type_id_1', '=', $type
+            ];
+        }
         $data = $this->field('vod_id,vod_blurb as title,vod_pic_slide as image')
-            ->where('vod_level', 9)
-            ->order('vod_time desc')
+            ->where($map)
+            ->cache($this->getCacheName('slider2'), 86400)
+            ->orderRand()
             ->select();
         return $this->showResArr($data);
     }
@@ -125,9 +136,17 @@ class Vod extends Base
      */
     public function getTodayUp(): array
     {
-        $data = $this->listField()->whereDay('vod_time')
+        $type = input('type');
+        $map = [];
+        if (!empty($type)) {
+            $map[] = [
+                'type_id|type_id_1', '=', $type
+            ];
+        }
+        $data = $this->listField('getTodayUp')->whereDay('vod_time')
+            ->where($map)
             ->page($this->page, $this->pageSize)
-            ->order('vod_year desc')->select();
+            ->order('vod_time desc,vod_hits desc,vod_year desc')->select();
         $total = $this->whereDay('vod_time')->count();
         return $this->showResArr($data, $total);
     }
@@ -139,7 +158,7 @@ class Vod extends Base
     public function getHotMovie(): array
     {
         $map[] = ['type_id|type_id_1', '=', 1];
-        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+        $data = $this->listField('getHotMovie')->where($map)->page($this->page, $this->pageSize)
             ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
@@ -152,7 +171,7 @@ class Vod extends Base
     public function getHotTv(): array
     {
         $map[] = ['type_id|type_id_1', '=', 2];
-        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+        $data = $this->listField('getHotTv')->where($map)->page($this->page, $this->pageSize)
             ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
@@ -165,7 +184,7 @@ class Vod extends Base
     public function getHotVariety(): array
     {
         $map[] = ['type_id|type_id_1', '=', 3];
-        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+        $data = $this->listField('getHotVariety')->where($map)->page($this->page, $this->pageSize)
             ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
@@ -178,7 +197,7 @@ class Vod extends Base
     public function getHotComic(): array
     {
         $map[] = ['type_id|type_id_1', '=', 4];
-        $data = $this->listField()->where($map)->page($this->page, $this->pageSize)
+        $data = $this->listField('getHotComic')->where($map)->page($this->page, $this->pageSize)
             ->order($this->hotDesc)->select();
         $total = $this->where($map)->count();
         return $this->showResArr($data, $total);
@@ -190,7 +209,15 @@ class Vod extends Base
      */
     public function getHotList(): array
     {
-        $data = $this->listField()->page($this->page, $this->pageSize)
+        $type = input('type');
+        $map = [];
+        if (!empty($type)) {
+            $map[] = [
+                'type_id|type_id_1', '=', $type
+            ];
+        }
+        $data = $this->listField('getHotList')->page($this->page, $this->pageSize)
+            ->where($map)
             ->order($this->hotDesc)->select();
         $total = $this->count();
         return $this->showResArr($data, $total);
@@ -256,26 +283,13 @@ class Vod extends Base
         foreach ($searchArr as $key) {
             $arrays[] = [
                 'num' => $redis->hGet($key, 'num'),
-                'keyword' => $this->contentRep($redis->hGet($key, 'word')),
+                'keyword' => $redis->hGet($key, 'word'),
                 'time' => $redis->hGet($key, 'time')
             ];
         }
         $arrays = multiArraySort($arrays, 'num', 'desc');
-        $arrays = array_slice($arrays, 0, 20);
+        $arrays = array_slice($arrays, 0, 100);
         return $this->showResArr($arrays);
-    }
-
-    /**
-     * 敏感内容替换
-     * @param $value
-     * @return array|string|string[]
-     */
-    public function contentRep($value)
-    {
-        $str = htmlspecialchars($value);
-        $words = file_get_contents(root_path() . 'public/static/words.txt');
-        $comment_key = preg_split('/[\r\n]+/', trim($words, "\r\n"));
-        return str_replace($comment_key, '***', $str);
     }
 
     /**
@@ -289,14 +303,41 @@ class Vod extends Base
     {
         $keyword = urldecode(input('keyword'));
         $this->saveSearchWord($keyword);
-        $total = $this->where('vod_name|vod_actor|vod_director', 'like', $keyword . '%')
+        $map = [
+            ['vod_name', 'like', $keyword . '%']
+        ];
+        $total = $this->where($map)
             ->count();
-        $data = $this->listField()->with(['parentType' => function ($query) {
+        $data = $this->baseField()->with(['parentType' => function ($query) {
             $query->field('type_id,type_name');
-        }])->where('vod_name|vod_actor|vod_director', 'like', $keyword . '%')
+        }, 'type' => function ($query) {
+            $query->field('type_id,type_name');
+        }])->where($map)
             ->page($this->page, $this->pageSize)
             ->order($this->hotDesc)
             ->select();
         return $this->showResArr($data, $total);
     }
+
+    /**
+     * 搜索提示
+     * @return array
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function searchComplete(): array
+    {
+        $keyword = urldecode(input('keyword'));
+        $total = $this->where('vod_name', 'like', $keyword . '%')
+            ->count();
+        $data = $this->field('vod_id,vod_name,vod_remarks')
+            ->where('vod_name', 'like', $keyword . '%')
+            ->limit($this->pageSize)
+            ->order($this->hotDesc)
+            ->select();
+        return $this->showResArr($data, $total);
+    }
+
+
 }

@@ -52,6 +52,16 @@ function checkProtocol($url)
 }
 
 /**
+ * 替换远程地址
+ * @param $url
+ * @return array|string|string[]
+ */
+function replaceRemoteUrl($url)
+{
+    return str_replace('mac://', config('api.remote_protocol'), $url);
+}
+
+/**
  * 获取时间戳 毫秒级
  * @return float
  */
@@ -105,5 +115,28 @@ function explodeByRule(string $rule, string $str): array
 {
     if (empty($str)) return [];
     return explode($rule, $str);
+}
+
+/**
+ * 随机颜色
+ * @return string
+ */
+function randColor()
+{
+    $str = '0123456789ABCDEF';
+
+    $estr = '#';
+
+    $len = strlen($str);
+
+    for ($i = 1; $i <= 6; $i++) {
+        $num = rand(0, $len - 1);
+
+        $estr = $estr . $str[$num];
+
+    }
+
+    return $estr;
+
 }
 
